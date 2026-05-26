@@ -289,27 +289,11 @@ public class SceneSetup : EditorWindow
 
         // Upgrade Panel
         GameObject upgradePanel = CreatePanel(canvasObj.transform, "UpgradePanel");
-        CreateTMPText(upgradePanel.transform, "UpgradeTitle", "UPGRADE",
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(400, 60), 36);
-
-        GameObject boostFireBtn = CreateButton(upgradePanel.transform, "BoostFireBtn", "Fire +",
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-150, 40), new Vector2(130, 50));
-        SetButtonColor(boostFireBtn, new Color(1f, 0.3f, 0.1f));
-
-        GameObject boostEarthBtn = CreateButton(upgradePanel.transform, "BoostEarthBtn", "Earth +",
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(150, 40), new Vector2(130, 50));
-        SetButtonColor(boostEarthBtn, new Color(0.6f, 0.4f, 0.2f));
-
-        GameObject boostLightningBtn = CreateButton(upgradePanel.transform, "BoostLightningBtn", "Lightning +",
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-150, -20), new Vector2(130, 50));
-        SetButtonColor(boostLightningBtn, new Color(1f, 1f, 0.2f));
-
-        GameObject boostWaterBtn = CreateButton(upgradePanel.transform, "BoostWaterBtn", "Water +",
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(150, -20), new Vector2(130, 50));
-        SetButtonColor(boostWaterBtn, new Color(0.2f, 0.5f, 1f));
+        CreateTMPText(upgradePanel.transform, "UpgradeTitle", "WAVE CLEAR!",
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 50), new Vector2(400, 60), 36);
 
         GameObject addTowerBtn = CreateButton(upgradePanel.transform, "AddTowerBtn", "Add Tower",
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -90), new Vector2(200, 50));
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -30), new Vector2(250, 60));
         upgradePanel.SetActive(false);
 
         // GameUI component
@@ -337,10 +321,6 @@ public class SceneSetup : EditorWindow
 
         SerializedObject uuSo = new SerializedObject(upgradeUI);
         uuSo.FindProperty("upgradePanel").objectReferenceValue = upgradePanel;
-        uuSo.FindProperty("boostFireBtn").objectReferenceValue = boostFireBtn.GetComponent<Button>();
-        uuSo.FindProperty("boostWaterBtn").objectReferenceValue = boostWaterBtn.GetComponent<Button>();
-        uuSo.FindProperty("boostLightningBtn").objectReferenceValue = boostLightningBtn.GetComponent<Button>();
-        uuSo.FindProperty("boostEarthBtn").objectReferenceValue = boostEarthBtn.GetComponent<Button>();
         uuSo.FindProperty("addTowerBtn").objectReferenceValue = addTowerBtn.GetComponent<Button>();
         uuSo.FindProperty("conveyorBelt").objectReferenceValue = belt;
         if (towerPrefab != null)

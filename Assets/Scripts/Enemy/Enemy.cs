@@ -76,8 +76,19 @@ public class Enemy : MonoBehaviour
     private void Die()
     {
         GameManager.Instance.AddScore(scoreValue);
+        BoostTowersOfSameElement();
         OnEnemyDied?.Invoke(this);
         Destroy(gameObject);
+    }
+
+    private void BoostTowersOfSameElement()
+    {
+        float bonus = 0.05f;
+        foreach (var tower in FindObjectsOfType<Tower>())
+        {
+            if (tower.CurrentElement == element)
+                tower.BoostDamage(bonus);
+        }
     }
 
     private void ReachBase()

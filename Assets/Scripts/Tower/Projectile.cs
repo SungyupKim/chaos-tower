@@ -20,10 +20,11 @@ public class Beam : MonoBehaviour
     private int pointCount = 12;
     private float baseWidth = 0.1f;
 
-    public static Beam Create(Vector3 origin, Enemy targetEnemy, Element element, float damage, BeamShape shape)
+    public static Beam Create(Vector3 origin, Enemy targetEnemy, Element element, float damage, BeamShape shape, Tower attacker = null)
     {
         if (targetEnemy == null) return null;
 
+        targetEnemy.SetLastHit(attacker);
         float multiplier = ElementSystem.GetDamageMultiplier(element, targetEnemy.CurrentElement);
         targetEnemy.TakeDamage(damage * multiplier);
 

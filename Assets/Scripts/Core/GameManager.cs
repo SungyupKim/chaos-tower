@@ -5,8 +5,6 @@ public enum GameState
 {
     Ready,
     Playing,
-    WaveComplete,
-    Upgrading,
     GameOver
 }
 
@@ -22,63 +20,40 @@ public class GameManager : MonoBehaviour
     public UnityEvent<GameState> OnGameStateChanged;
     public UnityEvent<int, int> OnBaseHealthChanged;
     public UnityEvent<int> OnScoreChanged;
-    public UnityEvent<int> OnWaveChanged;
 
     public GameState CurrentState { get; private set; }
-    public int CurrentWave { get; private set; }
     public int Score { get; private set; }
     public int BaseHealth { get; private set; }
+    public float GameTime { get; private set; }
     public Vector3 BasePosition => baseTransform != null ? baseTransform.position : Vector3.zero;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
     private void Start()
     {
         BaseHealth = maxBaseHealth;
-        CurrentWave = 0;
         Score = 0;
         SetState(GameState.Ready);
+    }
+
+    private void Update()
+    {
+        if (CurrentState == GameState.Playing)
+            GameTime += Time.deltaTime;
     }
 
     public void StartGame()
     {
         BaseHealth = maxBaseHealth;
-        CurrentWave = 0;
         Score = 0;
+        GameTime = 0f;
         OnBaseHealthChanged?.Invoke(BaseHealth, maxBaseHealth);
         OnScoreChanged?.Invoke(Score);
-        StartNextWave();
-    }
-
-    public void StartNextWave()
-    {
-        CurrentWave++;
-        OnWaveChanged?.Invoke(CurrentWave);
         SetState(GameState.Playing);
-    }
-
-    public void OnWaveCleared()
-    {
-        SetState(GameState.WaveComplete);
-        Invoke(nameof(EnterUpgrade), 1.5f);
-    }
-
-    private void EnterUpgrade()
-    {
-        SetState(GameState.Upgrading);
-    }
-
-    public void OnUpgradeComplete()
-    {
-        StartNextWave();
     }
 
     public void DamageBase(int damage)
@@ -89,15 +64,19 @@ public class GameManager : MonoBehaviour
         OnBaseHealthChanged?.Invoke(BaseHealth, maxBaseHealth);
 
         if (BaseHealth <= 0)
-        {
             SetState(GameState.GameOver);
-        }
     }
 
     public void AddScore(int points)
     {
         Score += points;
         OnScoreChanged?.Invoke(Score);
+    }
+
+    public void TriggerGameOver()
+    {
+        if (CurrentState != GameState.Playing) return;
+        SetState(GameState.GameOver);
     }
 
     private void SetState(GameState newState)

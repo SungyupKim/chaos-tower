@@ -1,21 +1,18 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 
+// Renamed role: no longer manages waves, just spawns enemies continuously.
 public class WaveManager : MonoBehaviour
 {
     [SerializeField] private EnemySpawner enemySpawner;
-    [SerializeField] private WaveData[] waveDatas;
 
-    [Header("Auto-generate waves if no WaveData")]
-    [SerializeField] private int baseEnemyCount = 5;
-    [SerializeField] private float enemyCountGrowth = 1.5f;
-    [SerializeField] private float spawnInterval = 1.5f;
-    [SerializeField] private float intervalDecayPerWave = 0.05f;
-    [SerializeField] private float minSpawnInterval = 0.3f;
+    [Header("Spawn Settings")]
+    [SerializeField] private float initialInterval = 2.5f;
+    [SerializeField] private float minInterval = 0.4f;
+    [SerializeField] private float intervalDecayRate = 0.008f; // per second elapsed
 
-    private int activeEnemyCount;
-    private bool waveInProgress;
+    private bool spawning;
+    private float gameTimer;
+    private float spawnTimer;
 
     private void Start()
     {
@@ -31,60 +28,37 @@ public class WaveManager : MonoBehaviour
 
     private void OnGameStateChanged(GameState state)
     {
-        if (state == GameState.Playing)
-            StartCoroutine(SpawnWave());
+        spawning = (state == GameState.Playing);
+        if (spawning)
+        {
+            gameTimer = 0f;
+            spawnTimer = 0f;
+        }
     }
 
-    private IEnumerator SpawnWave()
+    private void Update()
     {
-        waveInProgress = true;
-        int wave = GameManager.Instance.CurrentWave;
+        if (!spawning) return;
 
-        if (waveDatas != null && wave - 1 < waveDatas.Length)
+        gameTimer += Time.deltaTime;
+        spawnTimer -= Time.deltaTime;
+
+        if (spawnTimer <= 0f)
         {
-            yield return SpawnFromData(waveDatas[wave - 1]);
-        }
-        else
-        {
-            yield return SpawnProceduralWave(wave);
+            SpawnEnemy();
+            float interval = Mathf.Max(minInterval, initialInterval - gameTimer * intervalDecayRate);
+            spawnTimer = interval;
         }
     }
 
-    private IEnumerator SpawnFromData(WaveData data)
+    private void SpawnEnemy()
     {
-        foreach (var group in data.groups)
-        {
-            for (int i = 0; i < group.count; i++)
-            {
-                enemySpawner.SpawnEnemy(group.enemyData, group.element);
-                activeEnemyCount++;
-                yield return new WaitForSeconds(group.spawnInterval);
-            }
-            yield return new WaitForSeconds(data.groupDelay);
-        }
+        if (enemySpawner == null) return;
+        Element element = (Element)Random.Range(0, 4);
+        int difficulty = Mathf.Max(1, (int)(gameTimer / 30f) + 1);
+        enemySpawner.SpawnProceduralEnemy(difficulty, element);
     }
 
-    private IEnumerator SpawnProceduralWave(int wave)
-    {
-        int count = Mathf.RoundToInt(baseEnemyCount + (wave - 1) * enemyCountGrowth);
-        float interval = Mathf.Max(minSpawnInterval, spawnInterval - (wave - 1) * intervalDecayPerWave);
-
-        for (int i = 0; i < count; i++)
-        {
-            Element element = (Element)Random.Range(0, 4);
-            enemySpawner.SpawnProceduralEnemy(wave, element);
-            activeEnemyCount++;
-            yield return new WaitForSeconds(interval);
-        }
-    }
-
-    public void OnEnemyDestroyed()
-    {
-        activeEnemyCount--;
-        if (activeEnemyCount <= 0 && waveInProgress)
-        {
-            waveInProgress = false;
-            GameManager.Instance.OnWaveCleared();
-        }
-    }
+    // Kept so EnemySpawner's existing reference compiles
+    public void OnEnemyDestroyed() { }
 }

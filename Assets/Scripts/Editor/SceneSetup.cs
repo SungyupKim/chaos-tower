@@ -591,8 +591,9 @@ public class SceneSetup : EditorWindow
 
         GameObject healthSliderObj = CreateHealthSlider(hudPanel.transform);
 
+        // offset -270 keeps health text left of the 240-wide right sidebar
         GameObject healthText = CreateTMPText(hudPanel.transform, "HealthText", "20/20",
-            new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-30f, -75f), new Vector2(220f, 40f));
+            new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-270f, -75f), new Vector2(220f, 40f));
 
         GameObject levelUpText = CreateTMPText(hudPanel.transform, "LevelUpText", "",
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(800f, 52f), 26);
@@ -616,35 +617,35 @@ public class SceneSetup : EditorWindow
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -90f), new Vector2(250f, 60f));
         gameOverPanel.SetActive(false);
 
-        // ── Reward Queue Panel ─────────────────────────────────────────────────
-        // Anchored to bottom; background is clearly distinct from the dark game bg
+        // ── Reward Queue Panel — right sidebar ────────────────────────────────
         GameObject rewardPanel = new GameObject("RewardQueuePanel");
         rewardPanel.transform.SetParent(canvasObj.transform, false);
         RectTransform rewardRt = rewardPanel.AddComponent<RectTransform>();
-        rewardRt.anchorMin = new Vector2(0f, 0f);
-        rewardRt.anchorMax = new Vector2(1f, 0f);
-        rewardRt.pivot     = new Vector2(0.5f, 0f);
-        rewardRt.anchoredPosition = new Vector2(0f, 100f);
-        rewardRt.sizeDelta = new Vector2(0f, 200f);
+        rewardRt.anchorMin        = new Vector2(1f, 0f);   // right edge, full height
+        rewardRt.anchorMax        = new Vector2(1f, 1f);
+        rewardRt.pivot            = new Vector2(1f, 0.5f);
+        rewardRt.anchoredPosition = Vector2.zero;
+        rewardRt.sizeDelta        = new Vector2(240f, 0f); // 240 wide, full height
         Image rewardBg = rewardPanel.AddComponent<Image>();
-        rewardBg.color = new Color(0.10f, 0.06f, 0.28f, 1f);   // dark purple — clearly different from game bg
+        rewardBg.color = new Color(0.10f, 0.06f, 0.28f, 1f);
 
-        CreateTMPText(rewardPanel.transform, "RewardTitle", "UPGRADE (tap or ↑↓)",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(1100f, 36f), 22);
+        CreateTMPText(rewardPanel.transform, "RewardTitle", "UPGRADE",
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(220f, 38f), 22);
 
+        // Buttons stacked vertically
         string[] btnLabels = { "DMG", "SPEED", "RANGE", "ATTACK", "REPAIR", "+TOWER" };
-        float btnW = 170f, btnH = 75f, gap = 10f;
-        float rowStart = -(btnLabels.Length * (btnW + gap) - gap) / 2f + btnW / 2f;
+        float btnW = 210f, btnH = 88f, btnGap = 10f;
         GameObject[] rewardBtns = new GameObject[6];
         for (int i = 0; i < 6; i++)
         {
-            float x = rowStart + i * (btnW + gap);
+            float y = -70f - i * (btnH + btnGap);
             rewardBtns[i] = CreateButton(rewardPanel.transform, $"RewardBtn_{i}", btnLabels[i],
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -58f), new Vector2(btnW, btnH));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(btnW, btnH));
         }
 
-        GameObject selectedLabel = CreateTMPText(rewardPanel.transform, "SelectedLabel", "Select: Damage +20%",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -148f), new Vector2(1100f, 36f), 20);
+        // Selected label near the bottom of the sidebar
+        GameObject selectedLabel = CreateTMPText(rewardPanel.transform, "SelectedLabel", "Damage +20%",
+            new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 20f), new Vector2(220f, 38f), 17);
 
         // ── GameUI component ───────────────────────────────────────────────────
         GameUI gameUI = canvasObj.AddComponent<GameUI>();
@@ -784,7 +785,7 @@ public class SceneSetup : EditorWindow
         textRt.anchorMin = Vector2.zero; textRt.anchorMax = Vector2.one; textRt.sizeDelta = Vector2.zero;
 
         TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
-        tmp.text = label; tmp.fontSize = 20;
+        tmp.text = label; tmp.fontSize = 24;
         tmp.alignment = TextAlignmentOptions.Center; tmp.color = Color.white;
         return btnObj;
     }
@@ -796,8 +797,8 @@ public class SceneSetup : EditorWindow
         RectTransform rt = sliderObj.AddComponent<RectTransform>();
         rt.anchorMin = new Vector2(1f, 1f); rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
-        rt.anchoredPosition = new Vector2(-30f, -30f);
-        rt.sizeDelta = new Vector2(400f, 34f);
+        rt.anchoredPosition = new Vector2(-270f, -30f);  // shifted left of 240-wide right sidebar
+        rt.sizeDelta = new Vector2(380f, 34f);
 
         Image bgImg = sliderObj.AddComponent<Image>();
         bgImg.color = new Color(0.15f, 0.15f, 0.15f);

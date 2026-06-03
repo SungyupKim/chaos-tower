@@ -540,33 +540,34 @@ public class SceneSetup : EditorWindow
         gameOverPanel.SetActive(false);
 
         // ── Reward Queue Panel ─────────────────────────────────────────────────
+        // Anchored to bottom; background is clearly distinct from the dark game bg
         GameObject rewardPanel = new GameObject("RewardQueuePanel");
         rewardPanel.transform.SetParent(canvasObj.transform, false);
         RectTransform rewardRt = rewardPanel.AddComponent<RectTransform>();
         rewardRt.anchorMin = new Vector2(0f, 0f);
         rewardRt.anchorMax = new Vector2(1f, 0f);
         rewardRt.pivot     = new Vector2(0.5f, 0f);
-        rewardRt.anchoredPosition = new Vector2(0f, 80f);  // 80px above bottom to clear nav bar
-        rewardRt.sizeDelta = new Vector2(0f, 160f);
+        rewardRt.anchoredPosition = new Vector2(0f, 100f);
+        rewardRt.sizeDelta = new Vector2(0f, 200f);
         Image rewardBg = rewardPanel.AddComponent<Image>();
-        rewardBg.color = new Color(0.07f, 0.07f, 0.13f, 0.92f);
+        rewardBg.color = new Color(0.10f, 0.06f, 0.28f, 1f);   // dark purple — clearly different from game bg
 
-        CreateTMPText(rewardPanel.transform, "RewardTitle", "Level-Up Reward (↑↓ or tap)",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(900f, 28f), 16);
+        CreateTMPText(rewardPanel.transform, "RewardTitle", "UPGRADE (tap or ↑↓)",
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(1100f, 36f), 22);
 
         string[] btnLabels = { "DMG", "SPEED", "RANGE", "ATTACK", "REPAIR", "+TOWER" };
-        float btnW = 155f, btnH = 58f, gap = 8f;
+        float btnW = 170f, btnH = 75f, gap = 10f;
         float rowStart = -(btnLabels.Length * (btnW + gap) - gap) / 2f + btnW / 2f;
         GameObject[] rewardBtns = new GameObject[6];
         for (int i = 0; i < 6; i++)
         {
             float x = rowStart + i * (btnW + gap);
             rewardBtns[i] = CreateButton(rewardPanel.transform, $"RewardBtn_{i}", btnLabels[i],
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -46f), new Vector2(btnW, btnH));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -58f), new Vector2(btnW, btnH));
         }
 
         GameObject selectedLabel = CreateTMPText(rewardPanel.transform, "SelectedLabel", "Select: Damage +20%",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -116f), new Vector2(900f, 28f), 17);
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -148f), new Vector2(1100f, 36f), 20);
 
         // ── GameUI component ───────────────────────────────────────────────────
         GameUI gameUI = canvasObj.AddComponent<GameUI>();
@@ -692,12 +693,12 @@ public class SceneSetup : EditorWindow
         rt.anchoredPosition = pos; rt.sizeDelta = size;
 
         Image img = btnObj.AddComponent<Image>();
-        img.color = new Color(0.2f, 0.2f, 0.3f, 0.9f);
+        img.color = new Color(0.22f, 0.14f, 0.52f, 1f);   // visible purple button
 
         Button btn = btnObj.AddComponent<Button>();
         ColorBlock colors = btn.colors;
-        colors.highlightedColor = new Color(0.3f, 0.3f, 0.5f);
-        colors.pressedColor = new Color(0.15f, 0.15f, 0.25f);
+        colors.highlightedColor = new Color(0.40f, 0.30f, 0.75f);
+        colors.pressedColor     = new Color(0.12f, 0.08f, 0.30f);
         btn.colors = colors;
 
         GameObject textObj = new GameObject("Text");

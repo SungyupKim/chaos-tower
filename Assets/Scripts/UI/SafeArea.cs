@@ -14,14 +14,29 @@ public class SafeArea : MonoBehaviour
         Apply();
     }
 
+    private void Update()
+    {
+        Apply();
+    }
+
     private void Apply()
     {
         Rect safe = Screen.safeArea;
         if (safe == lastSafeArea) return;
         lastSafeArea = safe;
 
-        Vector2 min = new Vector2(safe.xMin / Screen.width,  safe.yMin / Screen.height);
-        Vector2 max = new Vector2(safe.xMax / Screen.width,  safe.yMax / Screen.height);
+        float sw = Screen.width;
+        float sh = Screen.height;
+        if (sw <= 0 || sh <= 0) return;
+
+        Vector2 min = new Vector2(safe.xMin / sw, safe.yMin / sh);
+        Vector2 max = new Vector2(safe.xMax / sw, safe.yMax / sh);
+
+        // Clamp to valid range in case of transient bad values during orientation change
+        min.x = Mathf.Clamp01(min.x);
+        min.y = Mathf.Clamp01(min.y);
+        max.x = Mathf.Clamp01(max.x);
+        max.y = Mathf.Clamp01(max.y);
 
         rt.anchorMin = min;
         rt.anchorMax = max;

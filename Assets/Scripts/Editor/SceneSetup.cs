@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.Build.Reporting;
 using UnityEngine.UI;
 using UnityEngine.InputSystem.UI;
 using TMPro;
@@ -15,6 +16,37 @@ public class SceneSetup : EditorWindow
             "Create", "Cancel"))
             return;
 
+        RunSetup();
+    }
+
+    // ── Build APK: regenerates scene then triggers Android build ──────────────
+    [MenuItem("ChaosTower/Build Android APK")]
+    public static void BuildAndroid()
+    {
+        // Always regenerate + save before building so the APK has the latest scene
+        RunSetup();
+
+        string[] scenes = { "Assets/chaos-tower.unity" };
+        string    output = EditorUtility.SaveFilePanel("Save APK", "", "chaos-tower", "apk");
+        if (string.IsNullOrEmpty(output)) return;
+
+        BuildPlayerOptions opts = new BuildPlayerOptions
+        {
+            scenes           = scenes,
+            locationPathName = output,
+            target           = BuildTarget.Android,
+            options          = BuildOptions.None,
+        };
+
+        BuildReport report = BuildPipeline.BuildPlayer(opts);
+        if (report.summary.result == BuildResult.Succeeded)
+            EditorUtility.DisplayDialog("Build", "APK build succeeded!\n" + output, "OK");
+        else
+            EditorUtility.DisplayDialog("Build", "APK build FAILED. Check Console.", "OK");
+    }
+
+    private static void RunSetup()
+    {
         CleanupScene();
         CreateBase();
         CreateConveyorBelt();
@@ -26,7 +58,6 @@ public class SceneSetup : EditorWindow
         CreateUI();
         SetupCamera();
 
-        // Auto-save so the next APK build uses the updated scene
         EditorSceneManager.SaveOpenScenes();
         Debug.Log("[ChaosTower] Scene setup complete and saved!");
     }

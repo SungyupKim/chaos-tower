@@ -27,22 +27,68 @@ public class SceneSetup : EditorWindow
         RunSetup();
 
         string[] scenes = { "Assets/chaos-tower.unity" };
-        string    output = EditorUtility.SaveFilePanel("Save APK", "", "chaos-tower", "apk");
-        if (string.IsNullOrEmpty(output)) return;
+
+        // If a device is connected via ADB, offer to build-and-run directly
+        bool   hasDevice  = IsAdbDeviceConnected();
+        string apkPath    = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(), "chaos-tower.apk");
+
+        BuildOptions buildOpts;
+        if (hasDevice)
+        {
+            bool runOnDevice = EditorUtility.DisplayDialog(
+                "Build Android APK",
+                "ADB device detected.\n\nBuild and install on device?",
+                "Build & Run", "Save APK only");
+            buildOpts = runOnDevice ? BuildOptions.AutoRunPlayer : BuildOptions.None;
+            if (!runOnDevice)
+            {
+                apkPath = EditorUtility.SaveFilePanel("Save APK", "", "chaos-tower", "apk");
+                if (string.IsNullOrEmpty(apkPath)) return;
+            }
+        }
+        else
+        {
+            apkPath   = EditorUtility.SaveFilePanel("Save APK", "", "chaos-tower", "apk");
+            buildOpts = BuildOptions.None;
+            if (string.IsNullOrEmpty(apkPath)) return;
+        }
 
         BuildPlayerOptions opts = new BuildPlayerOptions
         {
             scenes           = scenes,
-            locationPathName = output,
+            locationPathName = apkPath,
             target           = BuildTarget.Android,
-            options          = BuildOptions.None,
+            options          = buildOpts,
         };
 
         BuildReport report = BuildPipeline.BuildPlayer(opts);
         if (report.summary.result == BuildResult.Succeeded)
-            EditorUtility.DisplayDialog("Build", "APK build succeeded!\n" + output, "OK");
+            Debug.Log("[ChaosTower] APK build succeeded: " + apkPath);
         else
             EditorUtility.DisplayDialog("Build", "APK build FAILED. Check Console.", "OK");
+    }
+
+    private static bool IsAdbDeviceConnected()
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("adb", "devices")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+            };
+            using var proc = System.Diagnostics.Process.Start(psi);
+            string output  = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit();
+            // "List of devices attached\n<serial>\tdevice" → at least one device line
+            var lines = output.Split('\n');
+            foreach (var line in lines)
+                if (line.Contains("\tdevice")) return true;
+        }
+        catch { }
+        return false;
     }
 
     private static void RunSetup()

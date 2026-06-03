@@ -42,25 +42,51 @@ public class ConveyorBelt : MonoBehaviour
         RotateTowers();
     }
 
+    private Vector2 touchStartPos;
+    private bool    touching;
+
     private void HandleInput()
     {
-        var kb = Keyboard.current;
-        if (kb == null) return;
-
-        float input = 0f;
-        if (kb.aKey.isPressed || kb.leftArrowKey.isPressed)
-            input = 1f;
-        else if (kb.dKey.isPressed || kb.rightArrowKey.isPressed)
-            input = -1f;
+        float input = GetKeyboardInput() + GetTouchInput();
+        input = Mathf.Clamp(input, -1f, 1f);
 
         if (input != 0f)
-        {
             currentSpeed = Mathf.MoveTowards(currentSpeed, input * maxRotationSpeed, acceleration * Time.deltaTime);
-        }
         else
-        {
             currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime);
+    }
+
+    private float GetKeyboardInput()
+    {
+        var kb = Keyboard.current;
+        if (kb == null) return 0f;
+        if (kb.aKey.isPressed || kb.leftArrowKey.isPressed)  return  1f;
+        if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) return -1f;
+        return 0f;
+    }
+
+    private float GetTouchInput()
+    {
+        var ts = UnityEngine.InputSystem.Touchscreen.current;
+        if (ts == null) return 0f;
+
+        var touch = ts.primaryTouch;
+
+        if (touch.press.wasPressedThisFrame)
+        {
+            touchStartPos = touch.position.ReadValue();
+            touching = true;
         }
+
+        if (touch.press.wasReleasedThisFrame)
+            touching = false;
+
+        if (!touching || !touch.press.isPressed) return 0f;
+
+        float dragX = touch.position.ReadValue().x - touchStartPos.x;
+        // normalise: full screen width drag → full speed
+        float screenW = Screen.width > 0 ? Screen.width : 1920f;
+        return -Mathf.Clamp(dragX / (screenW * 0.25f), -1f, 1f);
     }
 
     private void RotateTowers()

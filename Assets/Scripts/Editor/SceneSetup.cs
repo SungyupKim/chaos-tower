@@ -481,22 +481,23 @@ public class SceneSetup : EditorWindow
         canvasObj.AddComponent<GraphicRaycaster>();
 
         CanvasScaler scaler = canvasObj.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.uiScaleMode       = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight  = 0.5f;   // balance width & height matching for mobile
 
         // ── HUD Panel ──────────────────────────────────────────────────────────
         GameObject hudPanel = CreatePanel(canvasObj.transform, "HUDPanel");
 
         GameObject timeText = CreateTMPText(hudPanel.transform, "TimeText", "00:00",
-            new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -20f), new Vector2(220f, 50f));
+            new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(240f, 54f));
 
         GameObject scoreText = CreateTMPText(hudPanel.transform, "ScoreText", "Score: 0",
-            new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(20f, -70f), new Vector2(280f, 50f));
+            new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -84f), new Vector2(300f, 54f));
 
         GameObject healthSliderObj = CreateHealthSlider(hudPanel.transform);
 
         GameObject healthText = CreateTMPText(hudPanel.transform, "HealthText", "20/20",
-            new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-20f, -65f), new Vector2(200f, 36f));
+            new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-30f, -75f), new Vector2(220f, 40f));
 
         GameObject levelUpText = CreateTMPText(hudPanel.transform, "LevelUpText", "",
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(800f, 52f), 26);
@@ -528,26 +529,26 @@ public class SceneSetup : EditorWindow
         rewardRt.anchorMax = new Vector2(1f, 0f);
         rewardRt.pivot     = new Vector2(0.5f, 0f);
         rewardRt.anchoredPosition = Vector2.zero;
-        rewardRt.sizeDelta = new Vector2(0f, 130f);
+        rewardRt.sizeDelta = new Vector2(0f, 150f);
         Image rewardBg = rewardPanel.AddComponent<Image>();
         rewardBg.color = new Color(0.07f, 0.07f, 0.13f, 0.92f);
 
-        CreateTMPText(rewardPanel.transform, "RewardTitle", "Level-Up Reward (click to select)",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -7f), new Vector2(900f, 26f), 15);
+        CreateTMPText(rewardPanel.transform, "RewardTitle", "Level-Up Reward (↑↓ or tap)",
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(900f, 28f), 16);
 
         string[] btnLabels = { "DMG", "SPEED", "RANGE", "ATTACK", "REPAIR", "+TOWER" };
-        float btnW = 145f, btnH = 48f, gap = 8f;
+        float btnW = 155f, btnH = 58f, gap = 8f;
         float rowStart = -(btnLabels.Length * (btnW + gap) - gap) / 2f + btnW / 2f;
         GameObject[] rewardBtns = new GameObject[6];
         for (int i = 0; i < 6; i++)
         {
             float x = rowStart + i * (btnW + gap);
             rewardBtns[i] = CreateButton(rewardPanel.transform, $"RewardBtn_{i}", btnLabels[i],
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -42f), new Vector2(btnW, btnH));
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -46f), new Vector2(btnW, btnH));
         }
 
         GameObject selectedLabel = CreateTMPText(rewardPanel.transform, "SelectedLabel", "Select: Damage +20%",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(800f, 26f), 16);
+            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -116f), new Vector2(900f, 28f), 17);
 
         // ── GameUI component ───────────────────────────────────────────────────
         GameUI gameUI = canvasObj.AddComponent<GameUI>();
@@ -699,8 +700,8 @@ public class SceneSetup : EditorWindow
         RectTransform rt = sliderObj.AddComponent<RectTransform>();
         rt.anchorMin = new Vector2(1f, 1f); rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
-        rt.anchoredPosition = new Vector2(-20f, -20f);
-        rt.sizeDelta = new Vector2(380f, 30f);
+        rt.anchoredPosition = new Vector2(-30f, -30f);
+        rt.sizeDelta = new Vector2(400f, 34f);
 
         Image bgImg = sliderObj.AddComponent<Image>();
         bgImg.color = new Color(0.15f, 0.15f, 0.15f);

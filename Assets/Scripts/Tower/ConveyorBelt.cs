@@ -22,9 +22,10 @@ public class ConveyorBelt : MonoBehaviour
     private List<Tower> towers = new List<Tower>();
     private float currentAngle;
     private float currentSpeed;
+    private float directionSign = 1f;   // +1 or -1, toggled by swipe
 
     public float Radius           => radius;
-    public float AngularSpeedDeg  => baseRotationSpeed + currentSpeed;
+    public float AngularSpeedDeg  => (baseRotationSpeed * directionSign) + currentSpeed;
 
     private void Awake() => Instance = this;
     private void OnDestroy() { if (Instance == this) Instance = null; }
@@ -44,14 +45,15 @@ public class ConveyorBelt : MonoBehaviour
 
     private Vector2 touchStartPos;
     private bool    touching;
+    private const float SwipeThreshold = 60f;   // pixels needed to count as a swipe
 
     private void HandleInput()
     {
-        float input = GetKeyboardInput() + GetTouchInput();
-        input = Mathf.Clamp(input, -1f, 1f);
+        float keyInput = GetKeyboardInput();
+        HandleSwipe();
 
-        if (input != 0f)
-            currentSpeed = Mathf.MoveTowards(currentSpeed, input * maxRotationSpeed, acceleration * Time.deltaTime);
+        if (keyInput != 0f)
+            currentSpeed = Mathf.MoveTowards(currentSpeed, keyInput * maxRotationSpeed, acceleration * Time.deltaTime);
         else
             currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime);
     }
@@ -65,10 +67,11 @@ public class ConveyorBelt : MonoBehaviour
         return 0f;
     }
 
-    private float GetTouchInput()
+    // Swipe right → reverse direction, swipe left → restore direction
+    private void HandleSwipe()
     {
-        var ts = UnityEngine.InputSystem.Touchscreen.current;
-        if (ts == null) return 0f;
+        var ts = Touchscreen.current;
+        if (ts == null) return;
 
         var touch = ts.primaryTouch;
 
@@ -78,20 +81,18 @@ public class ConveyorBelt : MonoBehaviour
             touching = true;
         }
 
-        if (touch.press.wasReleasedThisFrame)
+        if (touch.press.wasReleasedThisFrame && touching)
+        {
             touching = false;
-
-        if (!touching || !touch.press.isPressed) return 0f;
-
-        float dragX = touch.position.ReadValue().x - touchStartPos.x;
-        // normalise: full screen width drag → full speed
-        float screenW = Screen.width > 0 ? Screen.width : 1920f;
-        return -Mathf.Clamp(dragX / (screenW * 0.25f), -1f, 1f);
+            float dragX = touch.position.ReadValue().x - touchStartPos.x;
+            if (Mathf.Abs(dragX) >= SwipeThreshold)
+                directionSign = dragX > 0f ? -1f : 1f;
+        }
     }
 
     private void RotateTowers()
     {
-        float effectiveSpeed = baseRotationSpeed + currentSpeed;
+        float effectiveSpeed = (baseRotationSpeed * directionSign) + currentSpeed;
         currentAngle += effectiveSpeed * Time.deltaTime;
 
         for (int i = 0; i < towers.Count; i++)

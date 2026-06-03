@@ -485,8 +485,18 @@ public class SceneSetup : EditorWindow
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.matchWidthOrHeight  = 0.5f;   // balance width & height matching for mobile
 
+        // ── SafeArea wrapper — keeps all UI inside device notch/nav-bar insets ─
+        GameObject safeAreaObj = new GameObject("SafeArea");
+        safeAreaObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform safeAreaRt = safeAreaObj.AddComponent<RectTransform>();
+        safeAreaRt.anchorMin = Vector2.zero;
+        safeAreaRt.anchorMax = Vector2.one;
+        safeAreaRt.offsetMin = Vector2.zero;
+        safeAreaRt.offsetMax = Vector2.zero;
+        safeAreaObj.AddComponent<SafeArea>();
+
         // ── HUD Panel ──────────────────────────────────────────────────────────
-        GameObject hudPanel = CreatePanel(canvasObj.transform, "HUDPanel");
+        GameObject hudPanel = CreatePanel(safeAreaObj.transform, "HUDPanel");
 
         GameObject timeText = CreateTMPText(hudPanel.transform, "TimeText", "00:00",
             new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(240f, 54f));
@@ -503,14 +513,14 @@ public class SceneSetup : EditorWindow
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(800f, 52f), 26);
 
         // ── Start Panel ────────────────────────────────────────────────────────
-        GameObject startPanel = CreatePanel(canvasObj.transform, "StartPanel");
+        GameObject startPanel = CreatePanel(safeAreaObj.transform, "StartPanel");
         CreateTMPText(startPanel.transform, "Title", "CHAOS TOWER",
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(600f, 100f), 48);
         GameObject startBtn = CreateButton(startPanel.transform, "StartButton", "START",
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(250f, 60f));
 
         // ── Game Over Panel ────────────────────────────────────────────────────
-        GameObject gameOverPanel = CreatePanel(canvasObj.transform, "GameOverPanel");
+        GameObject gameOverPanel = CreatePanel(safeAreaObj.transform, "GameOverPanel");
         CreateTMPText(gameOverPanel.transform, "GameOverTitle", "GAME OVER",
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 100f), new Vector2(500f, 80f), 42);
         GameObject finalScoreText = CreateTMPText(gameOverPanel.transform, "FinalScoreText", "Score: 0",
@@ -523,7 +533,7 @@ public class SceneSetup : EditorWindow
 
         // ── Reward Queue Panel ─────────────────────────────────────────────────
         GameObject rewardPanel = new GameObject("RewardQueuePanel");
-        rewardPanel.transform.SetParent(canvasObj.transform, false);
+        rewardPanel.transform.SetParent(safeAreaObj.transform, false);
         RectTransform rewardRt = rewardPanel.AddComponent<RectTransform>();
         rewardRt.anchorMin = new Vector2(0f, 0f);
         rewardRt.anchorMax = new Vector2(1f, 0f);

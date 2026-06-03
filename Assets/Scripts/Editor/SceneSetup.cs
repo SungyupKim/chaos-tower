@@ -10,10 +10,11 @@ public class SceneSetup : EditorWindow
     public static void SetupScene()
     {
         if (!EditorUtility.DisplayDialog("Chaos Tower Setup",
-            "This will auto-generate all game objects in the current scene.\nExisting objects may be duplicated.\n\nProceed?",
+            "This will clear and regenerate all Chaos Tower objects in the current scene.\n\nProceed?",
             "Create", "Cancel"))
             return;
 
+        CleanupScene();
         CreateBase();
         CreateConveyorBelt();
         GameObject towerPrefab = CreateTowerPrefab();
@@ -25,6 +26,20 @@ public class SceneSetup : EditorWindow
         SetupCamera();
 
         Debug.Log("[ChaosTower] Scene setup complete!");
+    }
+
+    private static void CleanupScene()
+    {
+        string[] rootNames = { "Base", "ConveyorBelt", "GameManager", "Canvas", "EventSystem", "Main Camera" };
+        foreach (string n in rootNames)
+        {
+            GameObject obj = GameObject.Find(n);
+            if (obj != null) Object.DestroyImmediate(obj);
+        }
+
+        // Remove Tower instances (Tower_Fire, Tower_Water, etc.)
+        foreach (Tower t in Object.FindObjectsOfType<Tower>())
+            Object.DestroyImmediate(t.gameObject);
     }
 
     private static GameObject CreateBase()

@@ -149,7 +149,7 @@ public class SceneSetup : EditorWindow
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Tower Prefab — stone fortress with single detailed body sprite + turret
+    // Tower Prefab — Kenney medieval castle: stone wall body + battlement top
     // ─────────────────────────────────────────────────────────────────────────
     private static GameObject CreateTowerPrefab()
     {
@@ -166,23 +166,33 @@ public class SceneSetup : EditorWindow
         visual.transform.localPosition = Vector3.zero;
         visual.transform.localScale = Vector3.one;
 
-        // Fortress body  (tower_body 128×320, PPU=320 → base 0.4×1.0)
-        // At localScale (2,2,1): display 0.8×2.0 in Visual units
-        // With root ×0.7: world 0.56×1.40; center at y=0, top +1.0, bottom -1.0
+        // Stone wall body (Kenney medievalTile_042, 70×70 PPU=70 → 1×1 at scale 1)
+        // Scale (2,2): 2×2 Visual units, extends y: -1.0 to +1.0
         GameObject towerBody = new GameObject("TowerBody");
         towerBody.transform.SetParent(visual.transform);
         towerBody.transform.localPosition = Vector3.zero;
         towerBody.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
         SpriteRenderer bodySr = towerBody.AddComponent<SpriteRenderer>();
-        bodySr.sprite = CreateTowerBodySprite();
+        bodySr.sprite = LoadKenneySprite("Assets/Sprites/KenneyMedieval/medievalTile_042.png", 70);
         bodySr.color = Color.white;   // tinted per element by TowerVisual
         bodySr.sortingOrder = 6;
 
-        // ── TurretPivot in the battlement zone ───────────────────────────────
-        // y=0.85 in Visual → sprite yf = (0.85+1.0)/2.0 = 0.925, inside crenels (yf>0.89)
+        // Battlement top (Kenney medievalTile_021, crenellated parapet)
+        // Scale (2.2, 1.6): sits atop body with crenels framing the turret
+        GameObject battleTop = new GameObject("BattlementTop");
+        battleTop.transform.SetParent(visual.transform);
+        battleTop.transform.localPosition = new Vector3(0f, 1.8f, 0f);
+        battleTop.transform.localScale = new Vector3(2.2f, 1.6f, 1f);
+        SpriteRenderer battleSr = battleTop.AddComponent<SpriteRenderer>();
+        battleSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyMedieval/medievalTile_021.png", 70);
+        battleSr.color = Color.white;
+        battleSr.sortingOrder = 6;
+
+        // ── TurretPivot — sits in the center of the battlement ───────────────
+        // y=2.0 → dome nestled inside crenels, barrel pokes out above
         GameObject turretPivot = new GameObject("TurretPivot");
         turretPivot.transform.SetParent(visual.transform);
-        turretPivot.transform.localPosition = new Vector3(0f, 0.85f, 0f);
+        turretPivot.transform.localPosition = new Vector3(0f, 2.0f, 0f);
         turretPivot.transform.localScale = Vector3.one;
 
         // Turret dome (dome_shaded 128×128, PPU=128, scale 0.55)
@@ -305,7 +315,7 @@ public class SceneSetup : EditorWindow
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Enemy Prefab — 3D shaded airship with lit hull, gondola, and soft glow
+    // Enemy Prefab — Kenney bee sprite with bobbing animation
     // ─────────────────────────────────────────────────────────────────────────
     private static GameObject CreateEnemyPrefab()
     {
@@ -319,98 +329,26 @@ public class SceneSetup : EditorWindow
         rb.gravityScale = 0;
         rb.bodyType = RigidbodyType2D.Kinematic;
 
-        // ── Visual child — bobs without affecting physics ─────────────────────
+        // ── Visual child — bobs via AirshipVisual without affecting physics ───
         GameObject visual = new GameObject("Visual");
         visual.transform.SetParent(enemy.transform);
         visual.transform.localPosition = Vector3.zero;
         visual.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
 
-        // Hull  (airship_hull 192×80, PPU=192 → base 1×0.417)
-        // uniform scale 1.4 → display 1.4 × 0.584
+        // Hull — Kenney bee (56×48, PPU=56 → 1×0.857 at scale 1)
+        // scale 1.8 → display ~0.99×0.847 in Visual space
         GameObject hull = new GameObject("Hull");
         hull.transform.SetParent(visual.transform);
         hull.transform.localPosition = Vector3.zero;
-        hull.transform.localScale = new Vector3(1.4f, 1.4f, 1f);
+        hull.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
         SpriteRenderer hullSr = hull.AddComponent<SpriteRenderer>();
-        hullSr.sprite = CreateAirshipHullSprite();
+        hullSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyEnemies/bee.png", 56);
         hullSr.color = Color.white;   // tinted per element in AirshipVisual
         hullSr.sortingOrder = 7;
 
-        // Gondola  (gondola_shaded 128×32, PPU=128 → base 1×0.25)
-        // uniform scale 0.55 → display 0.55 × 0.1375
-        GameObject gondola = new GameObject("Gondola");
-        gondola.transform.SetParent(visual.transform);
-        gondola.transform.localPosition = new Vector3(0f, -0.38f, 0f);
-        gondola.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
-        SpriteRenderer gondolaSr = gondola.AddComponent<SpriteRenderer>();
-        gondolaSr.sprite = CreateGondolaSprite();
-        gondolaSr.color = Color.white;
-        gondolaSr.sortingOrder = 6;
-
-        // Tail fins (swept rectangles, keep simple)
-        GameObject finTop = new GameObject("FinTop");
-        finTop.transform.SetParent(visual.transform);
-        finTop.transform.localPosition = new Vector3(-0.3f, 0.30f, 0f);
-        finTop.transform.localScale = new Vector3(0.38f, 0.09f, 1f);
-        finTop.transform.localRotation = Quaternion.Euler(0f, 0f, -32f);
-        SpriteRenderer finTopSr = finTop.AddComponent<SpriteRenderer>();
-        finTopSr.sprite = CreateSquareSprite();
-        finTopSr.color = Color.white;
-        finTopSr.sortingOrder = 6;
-
-        GameObject finBottom = new GameObject("FinBottom");
-        finBottom.transform.SetParent(visual.transform);
-        finBottom.transform.localPosition = new Vector3(-0.3f, -0.30f, 0f);
-        finBottom.transform.localScale = new Vector3(0.38f, 0.09f, 1f);
-        finBottom.transform.localRotation = Quaternion.Euler(0f, 0f, 32f);
-        SpriteRenderer finBottomSr = finBottom.AddComponent<SpriteRenderer>();
-        finBottomSr.sprite = CreateSquareSprite();
-        finBottomSr.color = Color.white;
-        finBottomSr.sortingOrder = 6;
-
-        GameObject tailFin = new GameObject("TailFin");
-        tailFin.transform.SetParent(visual.transform);
-        tailFin.transform.localPosition = new Vector3(-0.52f, 0f, 0f);
-        tailFin.transform.localScale = new Vector3(0.13f, 0.40f, 1f);
-        SpriteRenderer tailFinSr = tailFin.AddComponent<SpriteRenderer>();
-        tailFinSr.sprite = CreateSquareSprite();
-        tailFinSr.color = Color.white;
-        tailFinSr.sortingOrder = 6;
-
-        // Propeller anchor (spins via AirshipVisual)
-        GameObject propAnchor = new GameObject("PropellerAnchor");
-        propAnchor.transform.SetParent(visual.transform);
-        propAnchor.transform.localPosition = new Vector3(-0.76f, 0f, 0f);
-        propAnchor.transform.localScale = Vector3.one;
-
-        GameObject propHub = new GameObject("PropHub");
-        propHub.transform.SetParent(propAnchor.transform);
-        propHub.transform.localPosition = Vector3.zero;
-        propHub.transform.localScale = new Vector3(0.10f, 0.10f, 1f);
-        SpriteRenderer propHubSr = propHub.AddComponent<SpriteRenderer>();
-        propHubSr.sprite = CreateCircleSprite();
-        propHubSr.color = new Color(0.25f, 0.25f, 0.30f, 0.9f);
-        propHubSr.sortingOrder = 8;
-
-        CreatePropBlade(propAnchor.transform, 0f);
-        CreatePropBlade(propAnchor.transform, 90f);
-
-        // Engine glow  (glow_soft 64×64, PPU=64 → base 1×1, scale 0.28)
-        GameObject engineGlow = new GameObject("EngineGlow");
-        engineGlow.transform.SetParent(visual.transform);
-        engineGlow.transform.localPosition = new Vector3(0.70f, 0f, 0f);
-        engineGlow.transform.localScale = new Vector3(0.30f, 0.30f, 1f);
-        SpriteRenderer engineGlowSr = engineGlow.AddComponent<SpriteRenderer>();
-        engineGlowSr.sprite = CreateGlowSprite();
-        engineGlowSr.color = new Color(1f, 0.92f, 0.4f, 0.85f);
-        engineGlowSr.sortingOrder = 9;
-
-        // AirshipVisual animation component
+        // AirshipVisual handles bobbing; propeller/glow left null (bee has no propeller)
         AirshipVisual av = visual.AddComponent<AirshipVisual>();
-        SerializedObject avSo = new SerializedObject(av);
-        avSo.FindProperty("propellerAnchor").objectReferenceValue   = propAnchor.transform;
-        avSo.FindProperty("engineGlowRenderer").objectReferenceValue = engineGlowSr;
-        avSo.ApplyModifiedProperties();
+        // propellerAnchor and engineGlowRenderer stay null — Update() guards against null
 
         // ── Health bar (stays on root so it doesn't bob) ──────────────────────
         GameObject healthBar = new GameObject("HealthBar");
@@ -1226,6 +1164,22 @@ public class SceneSetup : EditorWindow
             importer.SaveAndReimport();
         }
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
+    // Loads a pre-existing PNG from Assets as a sprite with pixel-art-friendly settings.
+    private static Sprite LoadKenneySprite(string assetPath, int ppu)
+    {
+        AssetDatabase.ImportAsset(assetPath);
+        TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+        if (importer != null)
+        {
+            importer.textureType        = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = ppu;
+            importer.filterMode         = FilterMode.Point;   // crisp pixel art
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+        }
+        return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
     }
 
     private static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)

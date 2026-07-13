@@ -15,9 +15,9 @@ public class ConveyorBelt : MonoBehaviour
 
     [Header("Visual")]
     [SerializeField] private int   circleSegments = 80;
-    [SerializeField] private float railOffset     = 0.12f;   // half-distance between the two rail centers
-    [SerializeField] private float railWidth      = 0.055f;  // visual thickness of each rail
-    [SerializeField] private int   numTies        = 80;      // sleepers around the circle
+    [SerializeField] private float railOffset     = 0.22f;   // half-distance between the two rail centers
+    [SerializeField] private float railWidth      = 0.11f;   // visual thickness of each rail
+    [SerializeField] private int   numTies        = 60;      // sleepers around the circle
 
     private List<Tower> towers = new List<Tower>();
     private float currentAngle;
@@ -121,13 +121,39 @@ public class ConveyorBelt : MonoBehaviour
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
             Transform child = transform.GetChild(i);
-            if (child.name == "Rail_Outer" || child.name == "Rail_Inner" || child.name.StartsWith("Tie_"))
+            if (child.name == "Rail_Outer" || child.name == "Rail_Inner" || child.name == "Ballast" || child.name.StartsWith("Tie_"))
                 Destroy(child.gameObject);
         }
 
+        CreateBallast();
         CreateRail("Rail_Outer", radius + railOffset);
         CreateRail("Rail_Inner", radius - railOffset);
         CreateTies();
+    }
+
+    // Gravel ballast bed between/under the two rails
+    private void CreateBallast()
+    {
+        GameObject obj = new GameObject("Ballast");
+        obj.transform.SetParent(transform);
+        obj.transform.localPosition = Vector3.zero;
+
+        LineRenderer lr = obj.AddComponent<LineRenderer>();
+        lr.positionCount = circleSegments + 1;
+        lr.loop          = false;
+        lr.startWidth    = (railOffset * 2f) + railWidth * 2f;
+        lr.endWidth      = lr.startWidth;
+        lr.startColor    = new Color(0.55f, 0.48f, 0.38f, 1f);   // warm gravel
+        lr.endColor      = lr.startColor;
+        lr.material      = new Material(Shader.Find("Sprites/Default"));
+        lr.sortingOrder  = 2;
+        lr.useWorldSpace = false;
+
+        for (int i = 0; i <= circleSegments; i++)
+        {
+            float angle = 2f * Mathf.PI * i / circleSegments;
+            lr.SetPosition(i, new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f));
+        }
     }
 
     private void CreateRail(string objName, float r)
@@ -138,13 +164,13 @@ public class ConveyorBelt : MonoBehaviour
 
         LineRenderer lr = obj.AddComponent<LineRenderer>();
         lr.positionCount  = circleSegments + 1;
-        lr.loop           = false;          // last point manually set equal to first
+        lr.loop           = false;
         lr.startWidth     = railWidth;
         lr.endWidth       = railWidth;
-        lr.startColor     = new Color(0.72f, 0.72f, 0.76f);
-        lr.endColor       = new Color(0.72f, 0.72f, 0.76f);
+        lr.startColor     = new Color(0.80f, 0.82f, 0.88f, 1f);   // bright steel
+        lr.endColor       = new Color(0.80f, 0.82f, 0.88f, 1f);
         lr.material       = new Material(Shader.Find("Sprites/Default"));
-        lr.sortingOrder   = 3;
+        lr.sortingOrder   = 4;
         lr.useWorldSpace  = false;
 
         for (int i = 0; i <= circleSegments; i++)
@@ -156,7 +182,6 @@ public class ConveyorBelt : MonoBehaviour
 
     private void CreateTies()
     {
-        // Minimal white texture used as the tie sprite
         Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
         Color[]   px  = { Color.white, Color.white, Color.white, Color.white };
         tex.SetPixels(px);
@@ -164,9 +189,9 @@ public class ConveyorBelt : MonoBehaviour
         tex.filterMode = FilterMode.Point;
         Sprite tieSprite = Sprite.Create(tex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f), 2f);
 
-        // Ties extend slightly beyond both rails
-        float tieLength  = (railOffset + 0.09f) * 2f;
-        Color tieColor   = new Color(0.24f, 0.17f, 0.10f);   // dark wood/concrete
+        // Ties extend beyond both rails for realistic sleeper look
+        float tieLength = (railOffset + 0.16f) * 2f;
+        Color tieColor  = new Color(0.42f, 0.28f, 0.14f, 1f);   // warm oak wood
 
         for (int j = 0; j < numTies; j++)
         {
@@ -175,18 +200,16 @@ public class ConveyorBelt : MonoBehaviour
 
             GameObject tie = new GameObject($"Tie_{j}");
             tie.transform.SetParent(transform);
-            // Center of tie sits on the track circle radius
             tie.transform.localPosition = new Vector3(
                 Mathf.Cos(rad) * radius, Mathf.Sin(rad) * radius, 0f);
-            // Rotate so the tie's Y-axis points radially outward
             tie.transform.localRotation = Quaternion.Euler(0f, 0f, deg - 90f);
-            // x = tangential width, y = radial length
-            tie.transform.localScale = new Vector3(0.08f, tieLength, 1f);
+            // x = tangential width (thicker sleepers), y = radial length
+            tie.transform.localScale = new Vector3(0.15f, tieLength, 1f);
 
             SpriteRenderer sr = tie.AddComponent<SpriteRenderer>();
             sr.sprite       = tieSprite;
             sr.color        = tieColor;
-            sr.sortingOrder = 2;   // behind rails (order 3)
+            sr.sortingOrder = 3;   // above ballast (2), below rails (4)
         }
     }
 

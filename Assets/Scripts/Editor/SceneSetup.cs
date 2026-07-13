@@ -93,7 +93,9 @@ public class SceneSetup : EditorWindow
 
     private static void RunSetup()
     {
+        AssetDatabase.Refresh();   // discover any new sprites copied to disk
         CleanupScene();
+        CreateEnvironment();
         CreateBase();
         CreateConveyorBelt();
         GameObject towerPrefab = CreateTowerPrefab();
@@ -110,7 +112,7 @@ public class SceneSetup : EditorWindow
 
     private static void CleanupScene()
     {
-        string[] rootNames = { "Base", "ConveyorBelt", "GameManager", "Canvas", "EventSystem", "Main Camera" };
+        string[] rootNames = { "Base", "ConveyorBelt", "Environment", "GameManager", "Canvas", "EventSystem", "Main Camera" };
         foreach (string n in rootNames)
         {
             GameObject obj = GameObject.Find(n);
@@ -120,6 +122,79 @@ public class SceneSetup : EditorWindow
         // Remove Tower instances (Tower_Fire, Tower_Water, etc.)
         foreach (Tower t in Object.FindObjectsOfType<Tower>())
             Object.DestroyImmediate(t.gameObject);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Environment — dense flat top-down tiles filling the entire visible area
+    // ─────────────────────────────────────────────────────────────────────────
+    private static void CreateEnvironment()
+    {
+        GameObject env = new GameObject("Environment");
+        env.transform.position = Vector3.zero;
+
+        // Flat top-down Kenney TD tiles — 64×64 PNG, PPU=64 → 1 world unit each
+        Sprite grassA = LoadKenneySprite("Assets/Sprites/KenneyTDTopDown/grass_main.png", 64);
+        Sprite grassB = LoadKenneySprite("Assets/Sprites/KenneyTDTopDown/grass_alt.png",  64);
+        Sprite dirt   = LoadKenneySprite("Assets/Sprites/KenneyTDTopDown/dirt.png",       64);
+
+        // Decorations from KenneyTD (isometric-style accent sprites on top)
+        Sprite treeSmall = LoadKenneySprite("Assets/Sprites/KenneyTD/detail-tree.png",       64);
+        Sprite treeLarge = LoadKenneySprite("Assets/Sprites/KenneyTD/detail-tree-large.png", 64);
+        Sprite rocks     = LoadKenneySprite("Assets/Sprites/KenneyTD/detail-rocks.png",      64);
+
+        // Camera ortho size=8 → visible ±9 Y, ±16 X (covers 16:9 and portrait)
+        // Tile size 1 world unit, placed at tile center (offset by 0.5)
+        // Track radius = 3.0; add 0.8 padding each side for dirt border
+        const float dirtInner = 2.2f;
+        const float dirtOuter = 3.8f;
+
+        for (int row = -9; row <= 9; row++)
+        {
+            for (int col = -16; col <= 16; col++)
+            {
+                float x    = col + 0.5f;
+                float y    = row + 0.5f;
+                float dist = Mathf.Sqrt(x * x + y * y);
+
+                Sprite spr = (dist >= dirtInner && dist <= dirtOuter)
+                    ? dirt
+                    : (((row + col) & 1) == 0 ? grassA : grassB);
+
+                PlaceEnvSprite(env.transform, $"G_{row}_{col}", spr,
+                    new Vector3(x, y, 0f), 1.0f, -1);
+            }
+        }
+
+        // ── Trees: ring outside the conveyor track ───────────────────────────
+        for (int i = 0; i < 12; i++)
+        {
+            float angle = (360f / 12 * i) * Mathf.Deg2Rad;
+            float r     = 4.8f + (i % 3 == 0 ? 0.5f : 0f);
+            Vector3 pos = new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f);
+            Sprite  spr = (i % 3 == 0) ? treeLarge : treeSmall;
+            PlaceEnvSprite(env.transform, $"Tree_{i}", spr, pos, 1.2f, 1);
+        }
+
+        // ── Rock clusters between trees ──────────────────────────────────────
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = ((360f / 6 * i) + 18f) * Mathf.Deg2Rad;
+            Vector3 pos = new Vector3(Mathf.Cos(angle) * 4.3f, Mathf.Sin(angle) * 4.3f, 0f);
+            PlaceEnvSprite(env.transform, $"Rocks_{i}", rocks, pos, 1.0f, 1);
+        }
+    }
+
+    private static void PlaceEnvSprite(Transform parent, string name, Sprite spr,
+        Vector3 pos, float scale, int order)
+    {
+        GameObject obj = new GameObject(name);
+        obj.transform.SetParent(parent);
+        obj.transform.localPosition = pos;
+        obj.transform.localScale = Vector3.one * scale;
+        SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
+        sr.sprite       = spr;
+        sr.color        = Color.white;
+        sr.sortingOrder = order;
     }
 
     private static GameObject CreateBase()
@@ -149,7 +224,8 @@ public class SceneSetup : EditorWindow
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Tower Prefab — Kenney medieval castle: stone wall body + battlement top
+    // Tower Prefab — Kenney Tower Defense Kit: modular isometric 3D sprites
+    //   bottom + middle + top stacked, rotating weapon-turret on top
     // ─────────────────────────────────────────────────────────────────────────
     private static GameObject CreateTowerPrefab()
     {
@@ -166,88 +242,77 @@ public class SceneSetup : EditorWindow
         visual.transform.localPosition = Vector3.zero;
         visual.transform.localScale = Vector3.one;
 
-        // Stone wall body (Kenney medievalTile_042, 70×70 PPU=70 → 1×1 at scale 1)
-        // Scale (2,2): 2×2 Visual units, extends y: -1.0 to +1.0
-        GameObject towerBody = new GameObject("TowerBody");
-        towerBody.transform.SetParent(visual.transform);
-        towerBody.transform.localPosition = Vector3.zero;
-        towerBody.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
-        SpriteRenderer bodySr = towerBody.AddComponent<SpriteRenderer>();
-        bodySr.sprite = LoadKenneySprite("Assets/Sprites/KenneyMedieval/medievalTile_042.png", 70);
-        bodySr.color = Color.white;   // tinted per element by TowerVisual
+        // Tower base (64×64 PPU=64 → 1×1 at scale 1, scale 2 → 2×2 Visual)
+        GameObject towerBottom = new GameObject("TowerBottom");
+        towerBottom.transform.SetParent(visual.transform);
+        towerBottom.transform.localPosition = new Vector3(0f, 0f, 0f);
+        towerBottom.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
+        SpriteRenderer bottomSr = towerBottom.AddComponent<SpriteRenderer>();
+        bottomSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyTD/tower-round-bottom-a.png", 64);
+        bottomSr.color = Color.white;
+        bottomSr.sortingOrder = 5;
+
+        // Tower middle — main body, receives element tint
+        GameObject towerMiddle = new GameObject("TowerMiddle");
+        towerMiddle.transform.SetParent(visual.transform);
+        towerMiddle.transform.localPosition = new Vector3(0f, 0.7f, 0f);
+        towerMiddle.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
+        SpriteRenderer bodySr = towerMiddle.AddComponent<SpriteRenderer>();
+        bodySr.sprite = LoadKenneySprite("Assets/Sprites/KenneyTD/tower-round-middle-a.png", 64);
+        bodySr.color = Color.white;
         bodySr.sortingOrder = 6;
 
-        // Battlement top (Kenney medievalTile_021, crenellated parapet)
-        // Scale (2.2, 1.6): sits atop body with crenels framing the turret
-        GameObject battleTop = new GameObject("BattlementTop");
-        battleTop.transform.SetParent(visual.transform);
-        battleTop.transform.localPosition = new Vector3(0f, 1.8f, 0f);
-        battleTop.transform.localScale = new Vector3(2.2f, 1.6f, 1f);
-        SpriteRenderer battleSr = battleTop.AddComponent<SpriteRenderer>();
-        battleSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyMedieval/medievalTile_021.png", 70);
-        battleSr.color = Color.white;
-        battleSr.sortingOrder = 6;
+        // Tower top cap
+        GameObject towerTop = new GameObject("TowerTop");
+        towerTop.transform.SetParent(visual.transform);
+        towerTop.transform.localPosition = new Vector3(0f, 1.4f, 0f);
+        towerTop.transform.localScale = new Vector3(2.0f, 2.0f, 1f);
+        SpriteRenderer topSr = towerTop.AddComponent<SpriteRenderer>();
+        topSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyTD/tower-round-top-a.png", 64);
+        topSr.color = Color.white;
+        topSr.sortingOrder = 7;
 
-        // ── TurretPivot — sits in the center of the battlement ───────────────
-        // y=2.0 → dome nestled inside crenels, barrel pokes out above
+        // ── TurretPivot — rotates to track enemies ───────────────────────────
+        // y=2.0 sits above the top cap; the weapon sprite spins to aim
         GameObject turretPivot = new GameObject("TurretPivot");
         turretPivot.transform.SetParent(visual.transform);
         turretPivot.transform.localPosition = new Vector3(0f, 2.0f, 0f);
         turretPivot.transform.localScale = Vector3.one;
 
-        // Turret dome (dome_shaded 128×128, PPU=128, scale 0.55)
+        // Weapon turret (Kenney weapon-turret, 64×64 PPU=64)
         GameObject turret = new GameObject("Turret");
         turret.transform.SetParent(turretPivot.transform);
         turret.transform.localPosition = Vector3.zero;
-        turret.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
+        turret.transform.localScale = new Vector3(1.4f, 1.4f, 1f);
         SpriteRenderer turretSr = turret.AddComponent<SpriteRenderer>();
-        turretSr.sprite = CreateDomeSprite();
+        turretSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyTD/weapon-turret.png", 64);
         turretSr.color = Color.white;
         turretSr.sortingOrder = 8;
 
-        // Gun barrel (barrel_shaded 32×80, PPU=80 → base 0.4×1.0)
-        // scale (0.36, 0.55) → display 0.144×0.55; center = turret_r+barrel_half = 0.275+0.275=0.55
-        GameObject barrel = new GameObject("GunBarrel");
-        barrel.transform.SetParent(turretPivot.transform);
-        barrel.transform.localPosition = new Vector3(0f, 0.55f, 0f);
-        barrel.transform.localScale = new Vector3(0.36f, 0.55f, 1f);
-        SpriteRenderer barrelSr = barrel.AddComponent<SpriteRenderer>();
-        barrelSr.sprite = CreateGunBarrelSprite();
-        barrelSr.color = Color.white;
-        barrelSr.sortingOrder = 8;
-
-        // Core glow (glow_soft 64×64, PPU=64, scale 0.32)
+        // Element glow behind the turret (color shows fire/water/etc.)
         GameObject coreGlow = new GameObject("CoreGlow");
         coreGlow.transform.SetParent(turretPivot.transform);
         coreGlow.transform.localPosition = Vector3.zero;
-        coreGlow.transform.localScale = new Vector3(0.32f, 0.32f, 1f);
+        coreGlow.transform.localScale = new Vector3(0.60f, 0.60f, 1f);
         SpriteRenderer coreGlowSr = coreGlow.AddComponent<SpriteRenderer>();
         coreGlowSr.sprite = CreateGlowSprite();
-        coreGlowSr.color = new Color(1f, 1f, 1f, 0.7f);
-        coreGlowSr.sortingOrder = 9;
+        coreGlowSr.color = new Color(1f, 1f, 1f, 0.55f);
+        coreGlowSr.sortingOrder = 7;   // behind turret sprite
 
-        // FirePoint at barrel tip: turret_r + barrel_height = 0.275 + 0.55 = 0.825
+        // FirePoint at tip of turret (local y=0.7 above TurretPivot)
         GameObject firePoint = new GameObject("FirePoint");
         firePoint.transform.SetParent(turretPivot.transform);
-        firePoint.transform.localPosition = new Vector3(0f, 0.825f, 0f);
+        firePoint.transform.localPosition = new Vector3(0f, 0.7f, 0f);
 
-        // Wheels — sit on the two rails at the tower base
-        // Visual-local x = ±0.17 → world ±0.119 ≈ railOffset 0.12 (when tower is horizontal)
-        // Visual-local y = -0.90 (base of tower body)
-        Sprite wheelSpr = CreateWheelSprite();
-        GameObject wLeft  = CreateWheel("WheelLeft",  visual.transform, new Vector3(-0.17f, -0.90f, 0f), wheelSpr);
-        GameObject wRight = CreateWheel("WheelRight", visual.transform, new Vector3( 0.17f, -0.90f, 0f), wheelSpr);
-
-        // TowerVisual animation / tracking component
+        // TowerVisual — element tint on middle piece; glow pulses; turret tracks enemies
+        // No wheels needed: isometric base piece looks grounded already
         TowerVisual tv = visual.AddComponent<TowerVisual>();
         SerializedObject tvSo = new SerializedObject(tv);
-        tvSo.FindProperty("bodyRenderer").objectReferenceValue       = bodySr;
+        tvSo.FindProperty("bodyRenderer").objectReferenceValue      = bodySr;
         tvSo.FindProperty("turretRenderer").objectReferenceValue    = turretSr;
-        tvSo.FindProperty("coreGlowRenderer").objectReferenceValue = coreGlowSr;
-        tvSo.FindProperty("gunBarrelRenderer").objectReferenceValue = barrelSr;
+        tvSo.FindProperty("coreGlowRenderer").objectReferenceValue  = coreGlowSr;
         tvSo.FindProperty("turretPivot").objectReferenceValue       = turretPivot.transform;
-        tvSo.FindProperty("wheelLeft").objectReferenceValue         = wLeft.transform;
-        tvSo.FindProperty("wheelRight").objectReferenceValue        = wRight.transform;
+        // gunBarrelRenderer, wheelLeft, wheelRight left null — guarded in TowerVisual
         tvSo.ApplyModifiedProperties();
 
         // ── HP Bar ────────────────────────────────────────────────────────────
@@ -335,25 +400,24 @@ public class SceneSetup : EditorWindow
         visual.transform.localPosition = Vector3.zero;
         visual.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
 
-        // Hull — Kenney bee (56×48, PPU=56 → 1×0.857 at scale 1)
-        // scale 1.8 → display ~0.99×0.847 in Visual space
+        // Hull — Kenney UFO (enemy-ufo-a, 64×64 PPU=64 → 1×1 at scale 1)
+        // scale 1.6 → display 1.6×1.6 in Visual space (nice UFO size)
         GameObject hull = new GameObject("Hull");
         hull.transform.SetParent(visual.transform);
         hull.transform.localPosition = Vector3.zero;
-        hull.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
+        hull.transform.localScale = new Vector3(1.6f, 1.6f, 1f);
         SpriteRenderer hullSr = hull.AddComponent<SpriteRenderer>();
-        hullSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyEnemies/bee.png", 56);
+        hullSr.sprite = LoadKenneySprite("Assets/Sprites/KenneyTD/enemy-ufo-a.png", 64);
         hullSr.color = Color.white;   // tinted per element in AirshipVisual
         hullSr.sortingOrder = 7;
 
-        // AirshipVisual handles bobbing; propeller/glow left null (bee has no propeller)
+        // AirshipVisual handles bobbing; propeller/glow null — Update() guards
         AirshipVisual av = visual.AddComponent<AirshipVisual>();
-        // propellerAnchor and engineGlowRenderer stay null — Update() guards against null
 
         // ── Health bar (stays on root so it doesn't bob) ──────────────────────
         GameObject healthBar = new GameObject("HealthBar");
         healthBar.transform.SetParent(enemy.transform);
-        healthBar.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+        healthBar.transform.localPosition = new Vector3(0f, 0.65f, 0f);
 
         GameObject bg = new GameObject("Background");
         bg.transform.SetParent(healthBar.transform);
@@ -1166,17 +1230,19 @@ public class SceneSetup : EditorWindow
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 
-    // Loads a pre-existing PNG from Assets as a sprite with pixel-art-friendly settings.
+    // Loads a pre-existing PNG from Assets as a Single-mode sprite.
+    // Must force SpriteImportMode.Single — Unity auto-imports as Multiple and
+    // LoadAssetAtPath<Sprite> returns null on Multiple-mode textures.
     private static Sprite LoadKenneySprite(string assetPath, int ppu)
     {
-        AssetDatabase.ImportAsset(assetPath);
         TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
         if (importer != null)
         {
-            importer.textureType        = TextureImporterType.Sprite;
+            importer.textureType         = TextureImporterType.Sprite;
+            importer.spriteImportMode    = SpriteImportMode.Single;
             importer.spritePixelsPerUnit = ppu;
-            importer.filterMode         = FilterMode.Point;   // crisp pixel art
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.filterMode          = FilterMode.Point;
+            importer.textureCompression  = TextureImporterCompression.Uncompressed;
             importer.SaveAndReimport();
         }
         return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
